@@ -1,7 +1,7 @@
 """
-Sistema Integral de Gestión de Clientes, Servicios y Reservas
+Sistema Integral de Gestion de Clientes, Servicios y Reservas
 Empresa: Software FJ
-Curso: Programación 213023 - UNAD
+Curso: Programacion 213023 - UNAD
 """
 
 from abc import ABC, abstractmethod
@@ -15,7 +15,7 @@ import os
 LOG_FILE = "softwarefj_logs.txt"
 
 def registrar_log(tipo, mensaje):
-    """Registra eventos y errores en archivo de logs."""
+    # Registra eventos y errores en el archivo de logs con timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     linea = f"[{timestamp}] [{tipo}] {mensaje}\n"
     try:
@@ -30,27 +30,27 @@ def registrar_log(tipo, mensaje):
 # ============================================================
 
 class ErrorSistema(Exception):
-    """Excepción base del sistema."""
+    # Excepcion base del sistema, todas las demas heredan de esta
     pass
 
 class ErrorClienteInvalido(ErrorSistema):
-    """Se lanza cuando los datos del cliente son inválidos."""
+    # Se lanza cuando los datos del cliente no cumplen las validaciones
     pass
 
 class ErrorServicioInvalido(ErrorSistema):
-    """Se lanza cuando los datos del servicio son inválidos."""
+    # Se lanza cuando los datos del servicio no son correctos
     pass
 
 class ErrorReservaInvalida(ErrorSistema):
-    """Se lanza cuando la reserva no puede realizarse."""
+    # Se lanza cuando la reserva no puede crearse
     pass
 
 class ErrorDisponibilidad(ErrorSistema):
-    """Se lanza cuando hay conflicto de horarios."""
+    # Se lanza cuando el servicio ya tiene una reserva activa
     pass
 
 class ErrorEstadoInvalido(ErrorSistema):
-    """Se lanza cuando se intenta una transición de estado inválida."""
+    # Se lanza cuando se intenta una transicion de estado no permitida
     pass
 
 
@@ -59,7 +59,8 @@ class ErrorEstadoInvalido(ErrorSistema):
 # ============================================================
 
 class EntidadBase(ABC):
-    """Clase abstracta base para todas las entidades del sistema."""
+    # Clase abstracta base para todas las entidades del sistema
+    # Define los metodos que todas las entidades deben implementar
 
     @abstractmethod
     def validar(self):
@@ -75,13 +76,15 @@ class EntidadBase(ABC):
 # ============================================================
 
 class Cliente(EntidadBase):
-    """Representa un cliente del sistema con encapsulación de datos personales."""
+    # Representa un cliente del sistema
+    # Usa encapsulacion con propiedades para validar los datos al asignarlos
 
     def __init__(self, nombre, cc, ciudad, email):
         self._nombre = None
         self._cc = None
         self._ciudad = None
         self._email = None
+        # Se usan los setters para validar desde el momento de la creacion
         self.nombre = nombre
         self.cc = cc
         self.ciudad = ciudad
@@ -104,7 +107,7 @@ class Cliente(EntidadBase):
     @cc.setter
     def cc(self, valor):
         if not str(valor).isdigit() or len(str(valor)) < 6:
-            raise ErrorClienteInvalido("La cédula debe ser numérica y tener al menos 6 dígitos.")
+            raise ErrorClienteInvalido("La cedula debe ser numerica y tener al menos 6 digitos.")
         self._cc = str(valor)
 
     @property
@@ -124,7 +127,7 @@ class Cliente(EntidadBase):
     @email.setter
     def email(self, valor):
         if not valor or "@" not in valor or "." not in valor:
-            raise ErrorClienteInvalido("El email no es válido.")
+            raise ErrorClienteInvalido("El email no es valido.")
         self._email = valor.strip()
 
     def validar(self):
@@ -139,11 +142,13 @@ class Cliente(EntidadBase):
 # ============================================================
 
 class Servicio(EntidadBase, ABC):
-    """Clase abstracta que representa un servicio genérico de Software FJ."""
+    # Clase abstracta que define la estructura comun de todos los servicios
+    # Hereda de EntidadBase y ABC para obligar la implementacion de calcular_costo
 
     def __init__(self, id_servicio, nombre, hora_inicio, hora_fin, precio_por_hora):
+        # Validaciones de entrada antes de asignar atributos
         if not isinstance(hora_inicio, int) or not isinstance(hora_fin, int):
-            raise ErrorServicioInvalido("Las horas deben ser números enteros.")
+            raise ErrorServicioInvalido("Las horas deben ser numeros enteros.")
         if hora_inicio < 0 or hora_fin > 24:
             raise ErrorServicioInvalido("Las horas deben estar entre 0 y 24.")
         if hora_inicio >= hora_fin:
@@ -184,6 +189,8 @@ class Servicio(EntidadBase, ABC):
 
     @abstractmethod
     def calcular_costo(self, descuento=0, aplicar_iva=False):
+        # Metodo abstracto: cada servicio calcula su costo de forma diferente
+        # Acepta descuento en porcentaje e IVA como parametros opcionales
         pass
 
     def validar(self):
@@ -201,7 +208,8 @@ class Servicio(EntidadBase, ABC):
 # ============================================================
 
 class Sala(Servicio):
-    """Servicio de reserva de sala de reuniones."""
+    # Servicio de reserva de sala de reuniones
+    # Hereda de Servicio e implementa calcular_costo segun horas y precio
 
     def __init__(self, id_servicio, nombre, hora_inicio, hora_fin, capacidad, precio_por_hora):
         super().__init__(id_servicio, nombre, hora_inicio, hora_fin, precio_por_hora)
@@ -210,6 +218,7 @@ class Sala(Servicio):
         self._capacidad = capacidad
 
     def calcular_costo(self, descuento=0, aplicar_iva=False):
+        # Costo = horas * precio por hora, con descuento e IVA opcionales
         horas = self._hora_fin - self._hora_inicio
         costo = horas * self._precio_por_hora
         costo -= costo * (descuento / 100)
@@ -219,11 +228,12 @@ class Sala(Servicio):
 
     def describir(self):
         base = super().describir()
-        return f"{base} | Cap: {self._capacidad} personas | [SALA]"
+        return f"{base} | Capacidad: {self._capacidad} personas | [SALA]"
 
 
 class Equipo(Servicio):
-    """Servicio de alquiler de equipos tecnológicos."""
+    # Servicio de alquiler de equipos tecnologicos
+    # Hereda de Servicio e implementa calcular_costo segun horas y precio
 
     def __init__(self, id_servicio, nombre, hora_inicio, hora_fin, modelo, marca, precio_por_hora):
         super().__init__(id_servicio, nombre, hora_inicio, hora_fin, precio_por_hora)
@@ -233,6 +243,7 @@ class Equipo(Servicio):
         self._marca = marca
 
     def calcular_costo(self, descuento=0, aplicar_iva=False):
+        # Costo = horas * precio por hora, con descuento e IVA opcionales
         horas = self._hora_fin - self._hora_inicio
         costo = horas * self._precio_por_hora
         costo -= costo * (descuento / 100)
@@ -246,15 +257,17 @@ class Equipo(Servicio):
 
 
 class Asesoria(Servicio):
-    """Servicio de asesoría especializada."""
+    # Servicio de asesoria especializada
+    # Aplica un recargo del 10% por especializacion sobre el precio base
 
     def __init__(self, id_servicio, nombre, hora_inicio, hora_fin, tema, precio_por_hora):
         super().__init__(id_servicio, nombre, hora_inicio, hora_fin, precio_por_hora)
         if not tema:
-            raise ErrorServicioInvalido("El tema de la asesoría es obligatorio.")
+            raise ErrorServicioInvalido("El tema de la asesoria es obligatorio.")
         self._tema = tema
 
     def calcular_costo(self, descuento=0, aplicar_iva=False):
+        # Costo con recargo del 10% por especializacion, descuento e IVA opcionales
         horas = self._hora_fin - self._hora_inicio
         costo = horas * self._precio_por_hora * 1.10
         costo -= costo * (descuento / 100)
@@ -264,7 +277,7 @@ class Asesoria(Servicio):
 
     def describir(self):
         base = super().describir()
-        return f"{base} | Tema: {self._tema} | [ASESORÍA]"
+        return f"{base} | Tema: {self._tema} | [ASESORIA]"
 
 
 # ============================================================
@@ -272,7 +285,8 @@ class Asesoria(Servicio):
 # ============================================================
 
 class Reserva:
-    """Integra cliente, servicio y estado. Maneja el ciclo de vida de una reserva."""
+    # Integra cliente, servicio y estado
+    # Controla el ciclo de vida: pendiente -> confirmada -> finalizada/cancelada
 
     TRANSICIONES = {
         "pendiente":  ["confirmada", "cancelada"],
@@ -283,11 +297,11 @@ class Reserva:
 
     def __init__(self, id_reserva, cliente, servicio):
         if not isinstance(cliente, Cliente):
-            raise ErrorReservaInvalida("El cliente no es válido.")
+            raise ErrorReservaInvalida("El cliente no es valido.")
         if not isinstance(servicio, Servicio):
-            raise ErrorReservaInvalida("El servicio no es válido.")
+            raise ErrorReservaInvalida("El servicio no es valido.")
         if not servicio.disponible:
-            raise ErrorDisponibilidad(f"El servicio '{servicio.nombre}' no está disponible.")
+            raise ErrorDisponibilidad(f"El servicio '{servicio.nombre}' no esta disponible.")
 
         self._id = id_reserva
         self._cliente = cliente
@@ -296,6 +310,7 @@ class Reserva:
         self._fecha_creacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def _cambiar_estado(self, nuevo_estado):
+        # Verifica que la transicion de estado sea valida antes de aplicarla
         if nuevo_estado not in self.TRANSICIONES[self._estado]:
             raise ErrorEstadoInvalido(
                 f"No se puede pasar de '{self._estado}' a '{nuevo_estado}'."
@@ -329,6 +344,7 @@ class Reserva:
             raise
 
     def obtener_costo(self, descuento=0, aplicar_iva=False):
+        # Delega el calculo al servicio asociado
         return self._servicio.calcular_costo(descuento, aplicar_iva)
 
     def describir(self):
@@ -339,11 +355,12 @@ class Reserva:
 
 
 # ============================================================
-# SISTEMA DE GESTIÓN
+# SISTEMA DE GESTION
 # ============================================================
 
 class SistemaReservas:
-    """Gestiona clientes, servicios y reservas en memoria."""
+    # Gestiona clientes, servicios y reservas en memoria mediante listas
+    # No usa base de datos, toda la informacion vive en los objetos
 
     def __init__(self):
         self._clientes = []
@@ -376,6 +393,7 @@ class SistemaReservas:
 
     def crear_reserva(self, cliente, servicio):
         try:
+            # Verifica que no haya otra reserva activa para el mismo servicio
             for r in self._reservas:
                 if (r._servicio.id == servicio.id and
                         r._estado not in ["cancelada", "finalizada"]):
@@ -432,7 +450,7 @@ class SistemaReservas:
 
 
 # ============================================================
-# MENÚ INTERACTIVO
+# FUNCIONES DE APOYO PARA EL MENU
 # ============================================================
 
 def separador():
@@ -441,29 +459,34 @@ def separador():
 def pausar():
     input("\n  Presiona Enter para continuar...")
 
+
+# ============================================================
+# MENU DE CLIENTES
+# ============================================================
+
 def menu_clientes(sistema):
     while True:
         separador()
-        print("  GESTIÓN DE CLIENTES")
+        print("  GESTION DE CLIENTES")
         separador()
         print("  1. Registrar cliente")
         print("  2. Listar clientes")
         print("  0. Volver")
-        opcion = input("\n  Opción: ").strip()
+        opcion = input("\n  Opcion: ").strip()
 
         if opcion == "1":
             separador()
             print("  REGISTRAR CLIENTE")
             try:
-                nombre  = input("  Nombre:  ")
-                cc      = input("  Cédula:  ")
-                ciudad  = input("  Ciudad:  ")
-                email   = input("  Email:   ")
+                nombre = input("  Nombre:  ")
+                cc     = input("  Cedula:  ")
+                ciudad = input("  Ciudad:  ")
+                email  = input("  Email:   ")
                 cliente = Cliente(nombre, cc, ciudad, email)
                 sistema.registrar_cliente(cliente)
-                print(f"\n  ✓ Cliente '{nombre}' registrado exitosamente.")
+                print(f"\n  Cliente '{nombre}' registrado correctamente.")
             except ErrorClienteInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             finally:
                 pausar()
 
@@ -477,17 +500,21 @@ def menu_clientes(sistema):
             break
 
 
+# ============================================================
+# MENU DE SERVICIOS
+# ============================================================
+
 def menu_servicios(sistema):
     while True:
         separador()
-        print("  GESTIÓN DE SERVICIOS")
+        print("  GESTION DE SERVICIOS")
         separador()
         print("  1. Registrar Sala")
         print("  2. Registrar Equipo")
-        print("  3. Registrar Asesoría")
+        print("  3. Registrar Asesoria")
         print("  4. Listar servicios")
         print("  0. Volver")
-        opcion = input("\n  Opción: ").strip()
+        opcion = input("\n  Opcion: ").strip()
 
         if opcion == "1":
             separador()
@@ -501,11 +528,11 @@ def menu_servicios(sistema):
                 precio      = float(input("  Precio por hora: "))
                 sala = Sala(id_s, nombre, hora_inicio, hora_fin, capacidad, precio)
                 sistema.registrar_servicio(sala)
-                print(f"\n  ✓ Sala '{nombre}' registrada exitosamente.")
+                print(f"\n  Sala '{nombre}' registrada correctamente.")
             except ErrorServicioInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: Ingresa valores numéricos donde corresponde.")
+                print("\n  Error: Ingresa valores numericos donde corresponde.")
             finally:
                 pausar()
 
@@ -522,17 +549,17 @@ def menu_servicios(sistema):
                 precio      = float(input("  Precio por hora: "))
                 equipo = Equipo(id_s, nombre, hora_inicio, hora_fin, modelo, marca, precio)
                 sistema.registrar_servicio(equipo)
-                print(f"\n  ✓ Equipo '{nombre}' registrado exitosamente.")
+                print(f"\n  Equipo '{nombre}' registrado correctamente.")
             except ErrorServicioInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: Ingresa valores numéricos donde corresponde.")
+                print("\n  Error: Ingresa valores numericos donde corresponde.")
             finally:
                 pausar()
 
         elif opcion == "3":
             separador()
-            print("  REGISTRAR ASESORÍA")
+            print("  REGISTRAR ASESORIA")
             try:
                 id_s        = int(input("  ID:              "))
                 nombre      = input("  Nombre:          ")
@@ -542,11 +569,11 @@ def menu_servicios(sistema):
                 precio      = float(input("  Precio por hora: "))
                 asesoria = Asesoria(id_s, nombre, hora_inicio, hora_fin, tema, precio)
                 sistema.registrar_servicio(asesoria)
-                print(f"\n  ✓ Asesoría '{nombre}' registrada exitosamente.")
+                print(f"\n  Asesoria '{nombre}' registrada correctamente.")
             except ErrorServicioInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: Ingresa valores numéricos donde corresponde.")
+                print("\n  Error: Ingresa valores numericos donde corresponde.")
             finally:
                 pausar()
 
@@ -560,10 +587,14 @@ def menu_servicios(sistema):
             break
 
 
+# ============================================================
+# MENU DE RESERVAS
+# ============================================================
+
 def menu_reservas(sistema):
     while True:
         separador()
-        print("  GESTIÓN DE RESERVAS")
+        print("  GESTION DE RESERVAS")
         separador()
         print("  1. Crear reserva")
         print("  2. Confirmar reserva")
@@ -572,31 +603,31 @@ def menu_reservas(sistema):
         print("  5. Ver costo de reserva")
         print("  6. Listar reservas")
         print("  0. Volver")
-        opcion = input("\n  Opción: ").strip()
+        opcion = input("\n  Opcion: ").strip()
 
         if opcion == "1":
             separador()
             print("  CREAR RESERVA")
             try:
-                cc          = input("  Cédula del cliente: ")
+                cc          = input("  Cedula del cliente: ")
                 id_servicio = int(input("  ID del servicio:    "))
                 cliente = sistema.buscar_cliente_por_cc(cc)
                 if not cliente:
-                    print("\n  ✗ Cliente no encontrado.")
+                    print("\n  Error: Cliente no encontrado.")
                     pausar()
                     continue
                 servicio = sistema.buscar_servicio_por_id(id_servicio)
                 if not servicio:
-                    print("\n  ✗ Servicio no encontrado.")
+                    print("\n  Error: Servicio no encontrado.")
                     pausar()
                     continue
                 reserva = sistema.crear_reserva(cliente, servicio)
-                print(f"\n  ✓ Reserva creada (ID: {reserva._id}).")
+                print(f"\n  Reserva creada correctamente (ID: {reserva._id}).")
                 print(f"  Costo estimado: ${reserva.obtener_costo():,.0f}")
             except (ErrorReservaInvalida, ErrorDisponibilidad) as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: El ID debe ser un número.")
+                print("\n  Error: El ID debe ser un numero.")
             finally:
                 pausar()
 
@@ -607,14 +638,14 @@ def menu_reservas(sistema):
                 id_r = int(input("  ID de la reserva: "))
                 reserva = sistema.buscar_reserva_por_id(id_r)
                 if not reserva:
-                    print("\n  ✗ Reserva no encontrada.")
+                    print("\n  Error: Reserva no encontrada.")
                 else:
                     reserva.confirmar()
-                    print(f"\n  ✓ Reserva {id_r} confirmada.")
+                    print(f"\n  Reserva {id_r} confirmada.")
             except ErrorEstadoInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: El ID debe ser un número.")
+                print("\n  Error: El ID debe ser un numero.")
             finally:
                 pausar()
 
@@ -625,14 +656,14 @@ def menu_reservas(sistema):
                 id_r = int(input("  ID de la reserva: "))
                 reserva = sistema.buscar_reserva_por_id(id_r)
                 if not reserva:
-                    print("\n  ✗ Reserva no encontrada.")
+                    print("\n  Error: Reserva no encontrada.")
                 else:
                     reserva.cancelar()
-                    print(f"\n  ✓ Reserva {id_r} cancelada.")
+                    print(f"\n  Reserva {id_r} cancelada.")
             except ErrorEstadoInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: El ID debe ser un número.")
+                print("\n  Error: El ID debe ser un numero.")
             finally:
                 pausar()
 
@@ -643,14 +674,14 @@ def menu_reservas(sistema):
                 id_r = int(input("  ID de la reserva: "))
                 reserva = sistema.buscar_reserva_por_id(id_r)
                 if not reserva:
-                    print("\n  ✗ Reserva no encontrada.")
+                    print("\n  Error: Reserva no encontrada.")
                 else:
                     reserva.finalizar()
-                    print(f"\n  ✓ Reserva {id_r} finalizada.")
+                    print(f"\n  Reserva {id_r} finalizada.")
             except ErrorEstadoInvalido as e:
-                print(f"\n  ✗ Error: {e}")
+                print(f"\n  Error: {e}")
             except ValueError:
-                print("\n  ✗ Error: El ID debe ser un número.")
+                print("\n  Error: El ID debe ser un numero.")
             finally:
                 pausar()
 
@@ -660,15 +691,15 @@ def menu_reservas(sistema):
             try:
                 id_r      = int(input("  ID de la reserva:      "))
                 descuento = float(input("  Descuento % (0 si no): "))
-                iva       = input("  ¿Aplicar IVA? (s/n):   ").strip().lower() == "s"
+                iva       = input("  Aplicar IVA? (s/n):    ").strip().lower() == "s"
                 reserva   = sistema.buscar_reserva_por_id(id_r)
                 if not reserva:
-                    print("\n  ✗ Reserva no encontrada.")
+                    print("\n  Error: Reserva no encontrada.")
                 else:
                     costo = reserva.obtener_costo(descuento, iva)
                     print(f"\n  Costo calculado: ${costo:,.0f}")
             except ValueError:
-                print("\n  ✗ Error: Ingresa valores numéricos donde corresponde.")
+                print("\n  Error: Ingresa valores numericos donde corresponde.")
             finally:
                 pausar()
 
@@ -682,92 +713,98 @@ def menu_reservas(sistema):
             break
 
 
+# ============================================================
+# DEMO AUTOMATICA - 10 OPERACIONES
+# ============================================================
+
 def demo_automatica(sistema):
-    """Ejecuta 10 operaciones automáticas para demostrar el sistema."""
+    # Ejecuta 10 operaciones para demostrar el funcionamiento del sistema
+    # Incluye casos validos e invalidos con manejo de excepciones
+
     separador()
-    print("  DEMO AUTOMÁTICA - 10 OPERACIONES")
+    print("  DEMO AUTOMATICA - 10 OPERACIONES")
     separador()
 
     sala1 = equipo1 = asesoria1 = None
 
-    # OP 1
-    print("\n[1] Registrar cliente válido")
+    # Operacion 1: cliente valido
+    print("\n[1] Registrar cliente valido")
     try:
-        c1 = Cliente("Ana Torres", "1023456789", "Bogotá", "ana@email.com")
+        c1 = Cliente("Ana Torres", "1023456789", "Bogota", "ana@email.com")
         sistema.registrar_cliente(c1)
-        print("  ✓ Ana Torres registrada.")
+        print("  OK - Ana Torres registrada.")
     except ErrorClienteInvalido as e:
-        print(f"  ✗ {e}")
+        print(f"  Error: {e}")
 
-    # OP 2
-    print("\n[2] Registrar cliente con email inválido")
+    # Operacion 2: cliente con email invalido
+    print("\n[2] Registrar cliente con email invalido")
     try:
         c2 = Cliente("Pedro", "987654", "Cali", "correo-invalido")
         sistema.registrar_cliente(c2)
     except ErrorClienteInvalido as e:
-        print(f"  ✗ Error esperado: {e}")
+        print(f"  Error esperado: {e}")
     finally:
-        print("  → Bloque finally ejecutado.")
+        print("  Bloque finally ejecutado.")
 
-    # OP 3
-    print("\n[3] Registrar cliente con cédula duplicada")
+    # Operacion 3: cedula duplicada
+    print("\n[3] Registrar cliente con cedula duplicada")
     try:
-        c3 = Cliente("Ana Copia", "1023456789", "Medellín", "copia@email.com")
+        c3 = Cliente("Ana Copia", "1023456789", "Medellin", "copia@email.com")
         sistema.registrar_cliente(c3)
     except ErrorClienteInvalido as e:
-        print(f"  ✗ Error esperado: {e}")
+        print(f"  Error esperado: {e}")
 
-    # OP 4
-    print("\n[4] Registrar segundo cliente válido")
+    # Operacion 4: segundo cliente valido
+    print("\n[4] Registrar segundo cliente valido")
     try:
-        c4 = Cliente("Carlos Ruiz", "9876543210", "Medellín", "carlos@email.com")
+        c4 = Cliente("Carlos Ruiz", "9876543210", "Medellin", "carlos@email.com")
         sistema.registrar_cliente(c4)
-        print("  ✓ Carlos Ruiz registrado.")
+        print("  OK - Carlos Ruiz registrado.")
     except ErrorClienteInvalido as e:
-        print(f"  ✗ {e}")
+        print(f"  Error: {e}")
 
-    # OP 5
-    print("\n[5] Registrar servicios válidos")
+    # Operacion 5: servicios validos
+    print("\n[5] Registrar servicios validos")
     try:
-        sala1     = Sala(101, "Sala Innovación", 8, 12, 10, 50000)
+        sala1     = Sala(101, "Sala Innovacion", 8, 12, 10, 50000)
         equipo1   = Equipo(102, "Laptop HP", 9, 11, "Pavilion 15", "HP", 30000)
-        asesoria1 = Asesoria(103, "Asesoría Fintech", 14, 16, "Finanzas Digitales", 80000)
+        asesoria1 = Asesoria(103, "Asesoria Fintech", 14, 16, "Finanzas Digitales", 80000)
         sistema.registrar_servicio(sala1)
         sistema.registrar_servicio(equipo1)
         sistema.registrar_servicio(asesoria1)
-        print("  ✓ 3 servicios registrados.")
+        print("  OK - 3 servicios registrados.")
     except ErrorServicioInvalido as e:
-        print(f"  ✗ {e}")
+        print(f"  Error: {e}")
 
-    # OP 6
-    print("\n[6] Registrar servicio con horas inválidas")
+    # Operacion 6: servicio con horas invalidas
+    print("\n[6] Registrar servicio con horas invalidas")
     try:
         sala_err = Sala(104, "Sala Error", 15, 10, 5, 40000)
         sistema.registrar_servicio(sala_err)
     except ErrorServicioInvalido as e:
-        print(f"  ✗ Error esperado: {e}")
+        print(f"  Error esperado: {e}")
     finally:
-        print("  → Bloque finally ejecutado.")
+        print("  Bloque finally ejecutado.")
 
-    # OP 7
+    # Operacion 7: reserva exitosa
     print("\n[7] Crear y confirmar reserva exitosa")
     try:
         c1_ref = sistema.buscar_cliente_por_cc("1023456789")
         r1 = sistema.crear_reserva(c1_ref, sala1)
         r1.confirmar()
-        print(f"  ✓{r1.describir().strip()}")
+        print(f"  OK -{r1.describir().strip()}")
     except (ErrorReservaInvalida, ErrorDisponibilidad, ErrorEstadoInvalido) as e:
-        print(f"  ✗ {e}")
+        print(f"  Error: {e}")
 
-    # OP 8
+    # Operacion 8: servicio ya ocupado
     print("\n[8] Intentar reservar servicio ya ocupado")
     try:
         c4_ref = sistema.buscar_cliente_por_cc("9876543210")
         sistema.crear_reserva(c4_ref, sala1)
     except ErrorDisponibilidad as e:
-        print(f"  ✗ Error esperado: {e}")
+        print(f"  Error esperado: {e}")
 
-    # OP 9
+    # Operacion 9: calculo de costos con variantes
     print("\n[9] Calcular costos con descuento e IVA")
     try:
         print(f"  Base:            ${asesoria1.calcular_costo():,.0f}")
@@ -775,38 +812,42 @@ def demo_automatica(sistema):
         print(f"  Con IVA:         ${asesoria1.calcular_costo(aplicar_iva=True):,.0f}")
         print(f"  Desc. + IVA:     ${asesoria1.calcular_costo(descuento=10, aplicar_iva=True):,.0f}")
     except Exception as e:
-        print(f"  ✗ {e}")
+        print(f"  Error: {e}")
 
-    # OP 10
-    print("\n[10] Cancelar reserva y transición inválida")
+    # Operacion 10: transicion de estado invalida
+    print("\n[10] Cancelar reserva y transicion de estado invalida")
     try:
         c4_ref = sistema.buscar_cliente_por_cc("9876543210")
         r3 = sistema.crear_reserva(c4_ref, equipo1)
         r3.confirmar()
         r3.cancelar()
-        r3.cancelar()  # debe fallar
+        r3.cancelar()  # esta linea debe lanzar ErrorEstadoInvalido
     except ErrorEstadoInvalido as e:
-        print(f"  ✗ Error esperado: {e}")
+        print(f"  Error esperado: {e}")
 
-    print("\n  Demo finalizada. Revisa el archivo de logs.")
+    print("\n  Demo finalizada. Revisa el archivo de logs para el registro completo.")
     pausar()
 
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def main():
     sistema = SistemaReservas()
 
     while True:
         separador()
-        print("  SISTEMA DE GESTIÓN - SOFTWARE FJ")
+        print("  SISTEMA DE GESTION - SOFTWARE FJ")
         separador()
-        print("  1. Gestión de Clientes")
-        print("  2. Gestión de Servicios")
-        print("  3. Gestión de Reservas")
+        print("  1. Gestion de Clientes")
+        print("  2. Gestion de Servicios")
+        print("  3. Gestion de Reservas")
         print("  4. Ver resumen general")
-        print("  5. Ejecutar demo automática")
+        print("  5. Ejecutar demo automatica")
         print("  0. Salir")
         separador()
-        opcion = input("  Opción: ").strip()
+        opcion = input("  Opcion: ").strip()
 
         if opcion == "1":
             menu_clientes(sistema)
@@ -830,10 +871,10 @@ def main():
             demo_automatica(sistema)
         elif opcion == "0":
             registrar_log("INFO", "Sistema cerrado por el usuario.")
-            print("\n  ¡Hasta luego!\n")
+            print("\n  Hasta luego.\n")
             break
         else:
-            print("\n  Opción inválida.")
+            print("\n  Opcion invalida.")
 
 
 if __name__ == "__main__":
